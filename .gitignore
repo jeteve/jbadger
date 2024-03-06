@@ -1,0 +1,8 @@
+.idea/*
+.test.swp
+*.swp
+*.zip
+node_modules/
+jira-plugin/build/
+jira-plugin/options/build/
+jira-plugin/assets/

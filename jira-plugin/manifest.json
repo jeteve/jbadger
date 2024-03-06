@@ -1,0 +1,40 @@
+{
+  "name": "JBadger",
+  "description": "Jira Badger, turns JIRA ticket number from text into rich badges",
+  "version": "1.0.0",
+  "manifest_version": 3,
+  "icons": {
+    "512": "resources/badger.png"
+  },
+  "action": {
+    "default_title": "Click to turn Jira issues numbers into rich badges in this page."
+  },
+  "minimum_chrome_version": "88",
+  "background": {
+    "service_worker": "build/background.js"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "resources/*"
+      ],
+      "matches": [
+        "*://*/*"
+      ]
+    }
+  ],
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "declarativeContent",
+    "storage"
+  ],
+  "host_permissions": [],
+  "optional_host_permissions": [
+    "*://*/*"
+  ],
+
+  "options_ui": {
+    "page": "options/options.html"
+  }
+}
