@@ -5,8 +5,8 @@
  * @param {*} getUrl a function that returns a promise with an object datum as a result.
  * @returns a Promise to await on that renders the data from JIRA
  */
-export async function renderJiraBadges(projectKeys, jiraUrl, getUrl){
-  if( ! projectKeys.length > 0 ){
+export async function renderJiraBadges(projectKeys, jiraUrl, getUrl) {
+  if (!projectKeys.length > 0) {
     console.log('No project keys. Doing nothing');
     return;
   }
@@ -27,14 +27,14 @@ export async function renderJiraBadges(projectKeys, jiraUrl, getUrl){
     let match;
     while ((match = re.exec(nodeValue)) !== null) {
       // We matched after the last end of the previous match
-      if( last_end != match.index){
+      if (last_end != match.index) {
         // Save the bit of string as a plain fragment.
-        fragments.push(document.createTextNode(nodeValue.substring(last_end, match.index )));
+        fragments.push(document.createTextNode(nodeValue.substring(last_end, match.index)));
       }
 
       // Time to build a replacement for the match
       const key = match[0];
-      const jspan = $('<span class="jira-' + key + ' jira-hotlink-badge"><a href="' + jiraUrl + '/browse/' + key + '">'+ key +'</a></span>');
+      const jspan = $('<span class="jira-' + key + ' jira-hotlink-badge"><a href="' + jiraUrl + '/browse/' + key + '">' + key + '</a></span>');
 
       issueKeys.push(match[0]);
       fragments.push(jspan.get(0));
@@ -43,12 +43,12 @@ export async function renderJiraBadges(projectKeys, jiraUrl, getUrl){
     }
 
     // Have we matched anything and is there any leftover string?
-    if( last_end > 0 && last_end < nodeValue.length ){
-      fragments.push(document.createTextNode(nodeValue.substring(last_end,nodeValue.length)));
+    if (last_end > 0 && last_end < nodeValue.length) {
+      fragments.push(document.createTextNode(nodeValue.substring(last_end, nodeValue.length)));
     }
 
-    if( fragments.length > 0 ){
-      return { replace: textNode , with: fragments , issueKeys };
+    if (fragments.length > 0) {
+      return { replace: textNode, with: fragments, issueKeys };
     }
 
     // No replacement
@@ -60,14 +60,14 @@ export async function renderJiraBadges(projectKeys, jiraUrl, getUrl){
     'STYLE': true,
     'SCRIPT': true,
     'NOSCRIPT': true,
-    'IFRAME' : true,
+    'IFRAME': true,
     'OBJECT': true,
     'INPUT': true,
     'FORM': true,
     'TEXTAREA': true,
     'HEAD': true,
     'LINK': true,
-    'A': true,
+    // 'A': true, // We want to enrich the simple links.
   };
 
   // Scan all elements in the page.
@@ -75,14 +75,14 @@ export async function renderJiraBadges(projectKeys, jiraUrl, getUrl){
     document.body,
     NodeFilter.SHOW_ELEMENT,
     (e) => {
-      return ignore_elements[( e.tagName  || '' ).toUpperCase()]  ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
+      return ignore_elements[(e.tagName || '').toUpperCase()] ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
     }
   );
 
   // Holds a collection of { replace: <node> , with: [ replacementNodes... ], issueKeys: [ keys.. ] }
   const replacements = [];
   let element;
-  while ((element = elements.nextNode() )) {
+  while ((element = elements.nextNode())) {
     // Find only the texts of this element
     var texts = document.createNodeIterator(element, NodeFilter.SHOW_TEXT, (node) => {
       // Only consider direct children, so we don't go over text nodes multiple times.
@@ -91,14 +91,17 @@ export async function renderJiraBadges(projectKeys, jiraUrl, getUrl){
     let text;
     while ((text = texts.nextNode())) {
       const r = replacementsOf(text);
-      if( r != null ){
+      if (r != null) {
         replacements.push(r);
       }
     }
   }
 
+  // Apply all the replacement in the whole page.
+  // Note we replace the text nodes only as 'replacementsOf' outputs
+  // text node replacements.
   let r;
-  for(r of replacements){
+  for (r of replacements) {
     r.replace.replaceWith.apply(r.replace, r.with);
   }
 
@@ -107,22 +110,26 @@ export async function renderJiraBadges(projectKeys, jiraUrl, getUrl){
   function getShortMetaData(issueKey) {
     return getUrl(jiraUrl + 'rest/api/2/issue/' + issueKey + '?fields=id,summary,issuetype,status,priority&expand=renderedFields');
   }
+
+  // Turn all replacements into queries and fill them up.
   const dataPromise = Promise.allSettled(
     replacements
-      .flatMap( r => { return r.issueKeys; } )
-      .filter((v,i,a)=>a.indexOf(v)==i) // No duplicates please.
-      .map( k => { return getShortMetaData(k); })
-      .map( dp => { return dp.then( r => {
-        const thespans = $('.jira-' + r.key);
-        const summary = $('<span class="summary" />');
-        const status  = $('<span class="status" />');
-        summary.append(r.fields.summary);
-        status.append(r.fields.status.name);
-        status.addClass( r.fields.status.statusCategory.colorName );
-        thespans.append(summary);
-        thespans.append(status);
-        return null;
-      });
+      .flatMap(r => { return r.issueKeys; })
+      .filter((v, i, a) => a.indexOf(v) == i) // No duplicates please. 
+      // Only the values that are found at their first place.
+      .map(k => { return getShortMetaData(k); })
+      .map(dp => {
+        return dp.then(r => {
+          const thespans = $('.jira-' + r.key); // find the replacement in the page with this class
+          const summary = $('<span class="summary" />'); // Build some filling elements.
+          const status = $('<span class="status" />');
+          summary.append(r.fields.summary);
+          status.append(r.fields.status.name);
+          status.addClass(r.fields.status.statusCategory.colorName);
+          thespans.append(summary);
+          thespans.append(status);
+          return null;
+        });
       })
   );
 

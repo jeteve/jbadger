@@ -1,7 +1,7 @@
 {
   "name": "JBadger",
   "description": "Jira Badger, turns JIRA ticket number from text into rich badges",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "manifest_version": 3,
   "icons": {
     "512": "resources/badger.png"
@@ -33,7 +33,6 @@
   "optional_host_permissions": [
     "*://*/*"
   ],
-
   "options_ui": {
     "page": "options/options.html"
   }
